@@ -1,2 +1,0 @@
-2.3.0
-https://github.com/Reedo22/The-Long-Drive-Fixes/blob/main/TLDPerfPatch.dll
