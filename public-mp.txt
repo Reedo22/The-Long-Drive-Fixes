@@ -5,9 +5,9 @@
 # and downloads newer versions as *.dll.update (applied on next launch).
 
 TLDMPUnlock      2.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDMPUnlock.dll
-TLDPubMPPatch    2.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubMPPatch.dll
+TLDPubMPPatch    2.1.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubMPPatch.dll
 TLDPubMPDiag     1.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubMPDiag.dll
 TLDPubDevMode    1.2.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubDevMode.dll
 TLDDirectMP      0.2.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDDirectMP.dll
-TLDPubPerfPatch  1.2.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubPerfPatch.dll
+TLDPubPerfPatch  1.2.1   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubPerfPatch.dll
 TLDPubCam360     1.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubCam360.dll
