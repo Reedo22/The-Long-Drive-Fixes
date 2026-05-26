@@ -1,11 +1,17 @@
-# TLD Public MP — plugin manifest (REVERTED to v1.1 baseline)
+# TLD Public MP — plugin manifest
 # Format: <PluginAssemblyName>  <Version>  <DownloadURL>
 # Lines starting with # are comments. Blank lines are skipped.
 # The updater compares the version here to the BepInPlugin version of each local DLL
 # and downloads newer versions as *.dll.update (applied on next launch).
 
 TLDMPUnlock      2.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDMPUnlock.dll
-TLDPubMPPatch    1.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubMPPatch.dll
+TLDPubMPPatch    2.9.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubMPPatch.dll
 TLDPubMPDiag     1.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubMPDiag.dll
 TLDPubDevMode    1.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubDevMode.dll
 TLDDirectMP      0.2.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDDirectMP.dll
+TLDPubPerfPatch  1.2.2   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubPerfPatch.dll
+TLDPubFullLog    1.1.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubFullLog.dll
+TLDPubMPCapture  1.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubMPCapture.dll
+TLDPubLoopback   0.7.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubLoopback.dll
+TLDPubFakeId     1.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubFakeId.dll
+TLDPubSpawner    1.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubSpawner.dll
