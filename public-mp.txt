@@ -14,18 +14,17 @@
 # installs to the v1.1 baseline, so the updater quietly re-shipped v2.11 each
 # launch.
 #
-# Dev-only plugins (TLDPubBridge, TLDPubFakeId, TLDPubLoopback's experimental
-# matchmaking patches, TLDPubMPCapture, TLDPubFullLog, TLDPubSpawner,
-# TLDPubItemSmooth) are intentionally NOT listed — they're not part of the
-# public release, and not listing them means the updater leaves whatever's
-# installed alone instead of trying to upgrade them.
+# This manifest is now the strict v1.1 baseline (with DevMode bumped to 1.2 —
+# same plugin, just enables the dev-key forcing). All our experimental MP
+# plugins (TLDPubBodyPush, TLDPubPlayerStable, TLDPubCarSync, TLDPubLoopback,
+# TLDPubBridge, TLDPubItemSmooth, TLDPubFakeId, TLDPubFullLog, TLDPubMPCapture,
+# TLDPubSpawner) are intentionally NOT listed and have been removed from
+# /public. If a user has them installed locally, the updater leaves them
+# alone — won't push them to anyone else, won't try to maintain them.
+# Source for each remains in /src for any future revisit.
 
 TLDMPUnlock      2.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDMPUnlock.dll
 TLDPubMPPatch    1.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubMPPatch.dll
 TLDPubMPDiag     1.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubMPDiag.dll
 TLDPubDevMode    1.2.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubDevMode.dll
 TLDDirectMP      0.2.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDDirectMP.dll
-TLDPubBodyPush   0.1.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubBodyPush.dll
-TLDPubPlayerStable 0.1.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubPlayerStable.dll
-TLDPubCarSync    0.1.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubCarSync.dll
-TLDPubLoopback   0.10.0  https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubLoopback.dll
