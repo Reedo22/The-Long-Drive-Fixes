@@ -14,7 +14,7 @@ namespace TLDPubMPPatch
     {
         public const string PluginGuid = "com.reedo.tld.pubmppatch";
         public const string PluginName = "TLD Public MP Patch";
-        public const string PluginVersion = "2.9.0";
+        public const string PluginVersion = "2.11.0";
 
         internal static ManualLogSource Log;
 
@@ -36,6 +36,9 @@ namespace TLDPubMPPatch
         internal static ConfigEntry<float> CfgSmoothMaxJumpMeters;
         internal static ConfigEntry<bool>  CfgSmoothRemoteItems;
         internal static ConfigEntry<bool>  CfgClaimDrivenCars;
+        internal static ConfigEntry<bool>  CfgClaimMovingItems;
+        internal static ConfigEntry<float> CfgClaimRestSec;
+        internal static ConfigEntry<float> CfgClaimVelThreshold;
         internal static ConfigEntry<bool>  CfgVerbose;
 
         internal static bool announcedMultiFlip;
@@ -88,8 +91,14 @@ namespace TLDPubMPPatch
                 "Skip smoothing when position delta exceeds this many meters (treat as teleport).");
             CfgSmoothRemoteItems = Config.Bind("Smoothing", "SmoothRemoteItems", true,
                 "Also lerp non-car remote items (loose props, pushable bodies). May look strange on briefly-held items; disable to A/B test.");
-            CfgClaimDrivenCars = Config.Bind("Multiplayer", "ClaimDrivenCars", true,
-                "When entering a car as a client, claim its tosaveitemscript so OUR position broadcasts win and the host's view tracks our local sim. Eliminates the snap on exit. Recommended ON.");
+            CfgClaimDrivenCars = Config.Bind("Multiplayer", "ClaimDrivenCars", false,
+                "EXPERIMENTAL. When entering a car as a client, claim its tosaveitemscript so OUR position broadcasts win and the host's view tracks our local sim. Eliminates snap-on-exit but causes host-side suspension oscillation on the claimed car (host's wheel rigidbodies are independent of the body lerp). Default OFF in 2.11 pending a fix. Snap-on-exit is the lesser evil.");
+            CfgClaimMovingItems = Config.Bind("Multiplayer", "ClaimMovingItems", false,
+                "EXPERIMENTAL. When a free item is being pushed around on the client, claim it so OUR position broadcasts win. Default OFF in 2.11 because v2.10's version also claimed wheels/parts (any tosaveitemscript with high angular velocity) and broke car physics. v2.11 fixes the wheel skip but still defaults OFF until A/B-validated.");
+            CfgClaimRestSec = Config.Bind("Multiplayer", "ClaimRestSec", 2.5f,
+                "Seconds of continuous at-rest state before a transiently-claimed item is released. Range (0.5, 10). Too short = item bounces back when physics is still settling. Too long = item stays under client authority unnecessarily.");
+            CfgClaimVelThreshold = Config.Bind("Multiplayer", "ClaimVelThreshold", 0.2f,
+                "Linear velocity magnitude in m/s above which an item counts as 'moving' for ClaimMovingItems. Angular velocity threshold is the same value in rad/s. Resting items have tiny non-zero velocities from physics jitter.");
             CfgVerbose = Config.Bind("Multiplayer", "VerboseLogging", false,
                 "Log every upgraded send + periodic dedupe summaries (chatty).");
 
@@ -109,14 +118,17 @@ namespace TLDPubMPPatch
             harm.PatchAll(typeof(RemoteCarSmoothingHook));
             harm.PatchAll(typeof(GetInClaimHook));
             harm.PatchAll(typeof(GetOutReleaseHook));
+            harm.PatchAll(typeof(ClaimMovingItemsHook));
 
             var worker = new GameObject("TLDPubMPPatchSmoothWorker");
             UnityEngine.Object.DontDestroyOnLoad(worker);
             worker.AddComponent<SmoothingWorker>();
 
-            Log.LogInfo("TLD Public MP Patch loaded.  ForceReliable=" + CfgForceReliable.Value
+            Log.LogInfo("TLD Public MP Patch v" + PluginVersion + " loaded."
+                + " ForceReliable=" + CfgForceReliable.Value
                 + " DriverAuth=" + CfgDriverAuthority.Value
                 + " ClaimDriven=" + CfgClaimDrivenCars.Value
+                + " ClaimItems=" + CfgClaimMovingItems.Value
                 + " SmoothCars=" + CfgSmoothRemoteCars.Value
                 + " SmoothItems=" + CfgSmoothRemoteItems.Value);
         }
@@ -581,6 +593,87 @@ namespace TLDPubMPPatch
                     Plugin.Log.LogInfo("[MPPatch] released driven car id=" + __state.idInSave);
             }
             catch (Exception e) { Plugin.Log.LogWarning("[MPPatch] GetOut release failed: " + e.Message); }
+        }
+    }
+
+    // Auto-claim free items on the client when they're being pushed around locally
+    // (player kicks, walks into, body-pushes, etc). The stock public branch only
+    // broadcasts position for items that are claimed or for which we're isServer; an
+    // unclaimed pushed item never broadcasts from us, while the host keeps broadcasting
+    // its at-rest version every 1s — hence the snap-back. Claiming flips the gate so
+    // host stops broadcasting (otherClaimed=true on host) and we take over.
+    [HarmonyPatch(typeof(tosaveitemscript), "MultiUpd")]
+    public static class ClaimMovingItemsHook
+    {
+        // idInSave -> realtime at which to release the transient claim
+        internal static readonly Dictionary<int, float> releaseAt = new Dictionary<int, float>();
+
+        [HarmonyPostfix]
+        public static void Postfix(tosaveitemscript __instance)
+        {
+            try
+            {
+                if (!Plugin.CfgClaimMovingItems.Value) return;
+                if (!mainscript.M.multi) return;
+                if (sns.s == null || sns.s.lobby == null) return;
+                if (sns.s.lobby.isServer) return;
+                if (__instance == null) return;
+                if (__instance.otherClaimed) return;
+                if (__instance.car != null) return;
+                // Skip anything that lives under a car (wheels, parts, attachables). These have their own
+                // tosaveitemscripts and rigidbodies, and a spinning wheel's angular velocity easily exceeds
+                // the motion threshold — claiming them was the v2.10 regression that caused suspension chaos.
+                if (__instance.GetComponentInParent<carscript>() != null) return;
+                if (__instance.GetComponent<wheelscript>() != null) return;
+                if (__instance.GetComponent<partscript>() != null) return;
+                if (__instance.P != null && __instance.P.pickedUp) return;
+
+                var rb = __instance.RB != null ? __instance.RB : __instance.GetComponent<Rigidbody>();
+                if (rb == null) return;
+                if (rb.isKinematic) return;
+
+                float vel = Plugin.CfgClaimVelThreshold.Value;
+                float velSqr = vel * vel;
+                bool moving = rb.velocity.sqrMagnitude > velSqr
+                           || rb.angularVelocity.sqrMagnitude > velSqr;
+
+                int id = __instance.idInSave;
+                float now = Time.realtimeSinceStartup;
+                float restSec = Math.Max(0.5f, Math.Min(10f, Plugin.CfgClaimRestSec.Value));
+
+                if (moving)
+                {
+                    if (!__instance.claimed)
+                    {
+                        __instance.Claim(true);
+                        if (Plugin.CfgVerbose.Value)
+                            Plugin.Log.LogInfo("[MPPatch] auto-claimed moving item id=" + id
+                                + " v=" + rb.velocity.magnitude.ToString("0.00"));
+                    }
+                    releaseAt[id] = now + restSec;
+                }
+                else if (__instance.claimed)
+                {
+                    if (releaseAt.TryGetValue(id, out float t))
+                    {
+                        if (now >= t)
+                        {
+                            __instance.Claim(false);
+                            releaseAt.Remove(id);
+                            if (Plugin.CfgVerbose.Value)
+                                Plugin.Log.LogInfo("[MPPatch] released claimed item id=" + id + " (at rest)");
+                        }
+                    }
+                    else
+                    {
+                        // We're claimed but our auto-claim didn't set this timer (e.g., we
+                        // claimed somewhere else, or the item came to rest before we noticed).
+                        // Arm a release timer so we don't hold the claim forever.
+                        releaseAt[id] = now + restSec;
+                    }
+                }
+            }
+            catch (Exception e) { Plugin.Log.LogWarning("[MPPatch] ClaimMovingItems failed: " + e.Message); }
         }
     }
 }
